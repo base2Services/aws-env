@@ -6,13 +6,27 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/kataras/golog"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 )
 
+var version string
+
 func main() {
+
+	if len(os.Args) > 1 {
+		if os.Args[1] == "-v" {
+			fmt.Printf("awsenv version %s\n", version)
+			os.Exit(0)
+		}
+	}
+
+	// Set log level if defind, default level info
+	if os.Getenv("LOG_LEVEL") != "" {
+		golog.SetLevel(os.Getenv("LOG_LEVEL"))
+	}
 
 	keys := strings.Split(os.Getenv("SSM_PATH"), "/")
 	params := make(map[string]string)
@@ -26,7 +40,7 @@ func main() {
 	// Loop through the sub paths and retrieve parameters
 	for i := range keys {
 		path = path + "/" + keys[i]
-		log.Printf("Retriving parameters in path %s", path)
+		golog.Infof("Retriving parameters in path %s", path)
 		ExportVariables(path, "", params)
 	}
 
@@ -53,11 +67,12 @@ func ExportVariables(path string, nextToken string, params map[string]string ) {
 	output, err := client.GetParametersByPath(input)
 
 	if err != nil {
-		log.Panic(err)
+		golog.Fatal(err)
 	}
 
 	for _, element := range output.Parameters {
 		env, value := TrimParameter(path, element)
+		golog.Debugf("Found parameter %s in path %s", env, path)
 		params[env] = value
 	}
 
@@ -90,14 +105,14 @@ func ParametersToFile(params map[string]string) {
 	}
 	// Create /ssm directory if it doesn't exist
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		log.Printf("Creating directory %s", dir)
+		golog.Debugf("Creating directory %s", dir)
 		os.MkdirAll(dir, 0755)
 	}
 
 	// Write evironment variables to .env file
 	err := ioutil.WriteFile(dir + "/.env", buffer.Bytes(), 0744)
 	if err != nil {
-		log.Panic(err)
+		golog.Fatal(err)
 	}
 }
 

@@ -6,6 +6,7 @@ services:
     build: ./
     image: base2/awsenv
     environment:
+      LOG_LEVEL: debug
       SSM_PATH: /my-app/production/prod1
       OUTPUT: shell
       AWS_REGION: ap-southeast-2
