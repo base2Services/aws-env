@@ -14,18 +14,6 @@
   version = "v1.32.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/hil"
-  packages = [".","ast","parser","scanner"]
-  revision = "fa9f258a92500514cc8e9c67020487709df92432"
-
-[[projects]]
-  name = "github.com/hashicorp/terraform"
-  packages = ["flatmap"]
-  revision = "a42fdb08a43c7fabb8898fe8c286b793bbaa4835"
-  version = "v0.11.1"
-
-[[projects]]
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
   revision = "0b12d6b5"
@@ -44,18 +32,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/mitchellh/mapstructure"
-  packages = ["."]
-  revision = "06020f85339e21b2478f756a78e295255ffa4d6a"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/mitchellh/reflectwalk"
-  packages = ["."]
-  revision = "63d60e9d0dbc60cf9164e6510889b0db6683d98c"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
   revision = "571f7bbbe08da2a8955aed9d4db316e78630e9a3"
@@ -69,6 +45,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e3d19dd66bb0ebaa9326e493ea3b30ad722c9c20e43ca72983c0b5b19afac92d"
+  inputs-digest = "55a417cd701e0aebfd060bf8d9a32375137fc653645422a0602343e42a30b605"
   solver-name = "gps-cdcl"
   solver-version = 1

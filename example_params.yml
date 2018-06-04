@@ -4,14 +4,13 @@ myapp:
     dev:
       COOL_FEATRUE_ENABLED: True
       MSSQL_USER: myuser
-# TODO - add support for secure and generate parameters
-#      MY_API_KEY:
-#        type: secure_input
-#        version: 1
-#      MSSQL_PASSWORD:
-#        type: secure
-#        version: 1
-#        length: 24
+      MSSQL_PASSWORD:
+        type: secure
+        version: 2
+        length: 16
+      MY_API_KEY:
+        type: secure_input
+        version: 1
 other:
   mykey: myvalue
-test: test3
+test: test4

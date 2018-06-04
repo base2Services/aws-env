@@ -1,18 +1,22 @@
 package awsenv
 
 import (
+
 	"io/ioutil"
+
 	"strings"
 
 	"gopkg.in/yaml.v2"
 	"github.com/kataras/golog"
-	"github.com/hashicorp/terraform/flatmap"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/aws"
+
+	"strconv"
 )
 
 type SsmParameter struct {
+	paramName string
 	paramType string
 	version	  string
 	length    string
@@ -30,14 +34,9 @@ func CreateSSMParameters(paramsFile string, region string) {
 
 	m := map[string]interface{}{}
 	err = yaml.Unmarshal([]byte(params), m)
-	var paramMap map[string]string
-	paramMap = flatmap.Flatten(m)
-	for key, value := range paramMap {
-		paramName := strings.Replace(key, ".", "/", -1)
-		if strings.Contains(paramName, "/") {
-			paramName = "/" + paramName
-		}
-		createParam(ssmClient, paramName, value)
+	paramMap := generateParamValues(m)
+	for _, value := range paramMap {
+		createParam(ssmClient, value)
 	}
 }
 
@@ -52,13 +51,18 @@ func createSSMClient(region string) *ssm.SSM {
 	return svc
 }
 
-func createParam(ssmClient *ssm.SSM, paramName string, paramValue string) {
-	if isParamNewOrUpdated(ssmClient, paramName, paramValue) {
-		golog.Infof("creating or updating ssm parameter %s=%s", paramName, paramValue)
+func generateParamValues(thing map[string]interface{}) map[string]*SsmParameter {
+	result := Flatten(thing)
+	return result
+}
+
+func createParam(ssmClient *ssm.SSM, param *SsmParameter) {
+	if isParamNewOrUpdated(ssmClient, param) {
+		golog.Infof("creating or updating ssm parameter %s", param.paramName)
 		input := &ssm.PutParameterInput{
-			Name:      aws.String(paramName),
-			Type:      aws.String("String"),
-			Value:     aws.String(paramValue),
+			Name:      aws.String(param.paramName),
+			Type:      aws.String(param.paramType),
+			Value:     aws.String(param.value),
 			Overwrite: aws.Bool(true),
 		}
 		_, err := ssmClient.PutParameter(input)
@@ -66,17 +70,32 @@ func createParam(ssmClient *ssm.SSM, paramName string, paramValue string) {
 			golog.Fatalf("failed to create param %s", err)
 		}
 	} else {
-		golog.Infof("ssm parameter %s already exists", paramName)
+		golog.Infof("ssm parameter %s already exists", param.paramName)
 	}
 }
 
-func isParamNewOrUpdated(ssmClient *ssm.SSM, paramName string, paramValue string) bool {
-	param := getParam(ssmClient, paramName)
-	return param == nil || aws.StringValue(param.Value) != paramValue
+func isParamNewOrUpdated(ssmClient *ssm.SSM, ssmParam *SsmParameter) bool {
+	params := getParam(ssmClient, ssmParam.paramName)
+	switch ssmParam.paramType {
+	case "SecureString":
+		v, err := strconv.ParseInt(ssmParam.version, 10, 64)
+		if err != nil {
+			golog.Fatalf("unable to parse version %s", err)
+		}
+		if len(params) > 0 {
+			return aws.Int64Value(params[0].Version) < v
+		} else {
+			return true
+		}
+	default:
+		return len(params) == 0 || aws.StringValue(params[0].Value) != ssmParam.value
+	}
+	return false
+	//return param == nil || aws.StringValue(param.Value) != ssmParam.value
 }
 
-func getParam(ssmClient *ssm.SSM, paramName string) *ssm.Parameter {
-	result, err := ssmClient.GetParameter(&ssm.GetParameterInput{
+func getParam(ssmClient *ssm.SSM, paramName string) []*ssm.ParameterHistory {
+	result, err := ssmClient.GetParameterHistory(&ssm.GetParameterHistoryInput{
 		Name: aws.String(paramName),
 	})
 	if err != nil {
@@ -85,6 +104,6 @@ func getParam(ssmClient *ssm.SSM, paramName string) *ssm.Parameter {
 		}
 		golog.Fatalf("failed to get param %s caused by %s", paramName, err)
 	}
-	return result.Parameter
+	return result.Parameters
 }
 
